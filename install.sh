@@ -22,7 +22,9 @@ BOLD='\033[1m'
 NC='\033[0m'        # No Color
 
 # ── Variables globales ──────────────────────────────────────
-REPO_URL="https://github.com/abesskamer237/katashie_bot.git"
+REPO_URL="https://github.com/abesskamer237/katashie-bot.git"
+REPO_ARCHIVE_URL="https://codeload.github.com/abesskamer237/katashie-bot/tar.gz/refs/heads/main"
+REPO_ARCHIVE_URL_ALT="https://codeload.github.com/abesskamer237/katashie_bot/tar.gz/refs/heads/main"
 INSTALL_DIR="/opt/katashie-bot"          # Répertoire d'installation
 SERVICE_USER="katashie"                  # Utilisateur système dédié
 LOG_FILE="/var/log/katashie-install.log" # Fichier de log
@@ -301,6 +303,36 @@ collect_config() {
 
 # ── Installation des sources ──────────────────────────────────
 
+download_source_archive() {
+  local archive_url="$1"
+  local archive_path
+  archive_path="$(mktemp)"
+
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$archive_url" -o "$archive_path" >> "$LOG_FILE" 2>&1 || {
+      rm -f "$archive_path"
+      return 1
+    }
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q -O "$archive_path" "$archive_url" >> "$LOG_FILE" 2>&1 || {
+      rm -f "$archive_path"
+      return 1
+    }
+  else
+    return 1
+  fi
+
+  rm -rf "$INSTALL_DIR"
+  mkdir -p "$INSTALL_DIR"
+  tar -xzf "$archive_path" -C "$INSTALL_DIR" --strip-components=1 >> "$LOG_FILE" 2>&1 || {
+    rm -f "$archive_path"
+    return 1
+  }
+
+  rm -f "$archive_path"
+  return 0
+}
+
 prepare_source_dir() {
   local script_path="${BASH_SOURCE[0]}"
   local script_dir
@@ -316,16 +348,22 @@ prepare_source_dir() {
     return 0
   fi
 
+  warn "Aucune source locale valide n’a été trouvée ; téléchargement depuis GitHub..."
+  rm -rf "$INSTALL_DIR"
+  mkdir -p "$INSTALL_DIR"
+
   if command -v git >/dev/null 2>&1; then
-    warn "Aucune source locale valide n’a été trouvée ; téléchargement depuis GitHub..."
-    rm -rf "$INSTALL_DIR"
-    mkdir -p "$INSTALL_DIR"
-    git clone "$REPO_URL" "$INSTALL_DIR" >> "$LOG_FILE" 2>&1 || error "Échec du clonage depuis GitHub"
-    SCRIPT_DIR="$INSTALL_DIR"
-    return 0
+    git clone "$REPO_URL" "$INSTALL_DIR" >> "$LOG_FILE" 2>&1 || {
+      warn "Le clonage Git a échoué ; tentative via archive tarball..."
+      download_source_archive "$REPO_ARCHIVE_URL" || download_source_archive "$REPO_ARCHIVE_URL_ALT" || error "Échec du téléchargement des sources depuis GitHub"
+    }
+  else
+    warn "Git indisponible ; téléchargement via archive tarball..."
+    download_source_archive "$REPO_ARCHIVE_URL" || download_source_archive "$REPO_ARCHIVE_URL_ALT" || error "Échec du téléchargement des sources depuis GitHub"
   fi
 
-  error "Aucune source valide n’a été trouvée localement ou via git."
+  SCRIPT_DIR="$INSTALL_DIR"
+  return 0
 }
 
 clone_repository() {
