@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ============================================================
 #  KATASHIE BOT — Installateur automatique v1.0.0
 #  https://github.com/abesskamer237/katashie_bot.git
@@ -58,6 +58,11 @@ error()   { echo -e "  ${RED}[✗]${NC} $1" | tee -a "$LOG_FILE"; exit 1; }
 section() { echo -e "\n  ${BOLD}${WHITE}── $1 ──${NC}\n"; }
 prompt()  { echo -e -n "  ${CYAN}?${NC} $1: "; }
 
+require_command() {
+  local cmd="$1"
+  command -v "$cmd" >/dev/null 2>&1 || error "Commande introuvable : $cmd"
+}
+
 # ── Vérifications préliminaires ──────────────────────────────
 
 # Vérifie que le script est exécuté en root
@@ -84,11 +89,15 @@ check_os() {
 check_ports() {
   section "Vérification des ports"
   local ports=("${APP_PORT}")
-  for port in "${ports[@]}"; do
-    if ss -ltn | grep -q ":${port} "; then
-      error "Le port ${port} est déjà utilisé. Veuillez libérer ce port avant d'installer."
-    fi
-  done
+  if command -v ss >/dev/null 2>&1; then
+    for port in "${ports[@]}"; do
+      if ss -ltn 2>/dev/null | grep -q ":${port} "; then
+        error "Le port ${port} est déjà utilisé. Veuillez libérer ce port avant d'installer."
+      fi
+    done
+  else
+    warn "Commande ss indisponible — vérification du port ignorée"
+  fi
   log "Port ${APP_PORT} libre"
 }
 
@@ -267,6 +276,9 @@ clone_repository() {
 
   info "Copie des fichiers..."
   cp -a "$SCRIPT_DIR/." "$INSTALL_DIR/"
+  if [ ! -d "$INSTALL_DIR/backend" ] || [ ! -d "$INSTALL_DIR/frontend" ]; then
+    error "La copie des sources est incomplète : backend/frontend introuvables."
+  fi
 
   # Vérifications post-copie pour s'assurer que tout est présent
   [ -d "$INSTALL_DIR/backend" ] || error "backend absent après copie"
@@ -327,7 +339,8 @@ install_app() {
   # --------------------- Backend ---------------------
   section "Installation des dépendances backend"
   cd "$INSTALL_DIR/backend"
-  npm install >> "$LOG_FILE" 2>&1
+  require_command npm
+  npm install --no-audit --no-fund >> "$LOG_FILE" 2>&1
   log "Dépendances backend installées"
 
   section "Compilation du backend TypeScript → JavaScript"
@@ -344,7 +357,7 @@ install_app() {
   # --------------------- Frontend --------------------
   section "Installation des dépendances frontend"
   cd "$INSTALL_DIR/frontend"
-  npm install >> "$LOG_FILE" 2>&1
+  npm install --no-audit --no-fund >> "$LOG_FILE" 2>&1
   npm run build >> "$LOG_FILE" 2>&1
   log "Frontend construit dans dist/"
 
