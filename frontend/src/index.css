@@ -7,7 +7,9 @@
 /* ── Base ────────────────────────────────────────────────── */
 * { box-sizing: border-box; }
 
-html, body { background: #0a0a0f; color: #f0f0f8; font-family: 'JetBrains Mono', monospace; }
+html, body { background: #0a0a0f; color: #f0f0f8; font-family: 'JetBrains Mono', monospace; min-height: 100%; }
+body { min-height: 100vh; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+#root { min-height: 100vh; }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #0a0a0f; }
@@ -55,6 +57,12 @@ html, body { background: #0a0a0f; color: #f0f0f8; font-family: 'JetBrains Mono',
   .card {
     @apply bg-gray-800 border border-gray-700 rounded-none p-4
            relative overflow-hidden;
+  }
+
+  @media (max-width: 640px) {
+    .card {
+      @apply p-3;
+    }
   }
   .card::before {
     content: '';
@@ -105,6 +113,12 @@ html, body { background: #0a0a0f; color: #f0f0f8; font-family: 'JetBrains Mono',
   .stat-card {
     @apply card flex flex-col gap-1;
   }
+
+  @media (max-width: 640px) {
+    .stat-card {
+      @apply gap-2;
+    }
+  }
   .stat-value {
     @apply text-2xl font-bold text-white font-mono;
   }
@@ -114,6 +128,11 @@ html, body { background: #0a0a0f; color: #f0f0f8; font-family: 'JetBrains Mono',
 
   /* Table */
   .data-table { @apply w-full font-mono text-sm; }
+  @media (max-width: 640px) {
+    .data-table {
+      @apply block overflow-x-auto whitespace-nowrap;
+    }
+  }
   .data-table th { @apply text-left text-xs text-gray-500 uppercase tracking-wider py-2 px-3 border-b border-gray-700; }
   .data-table td { @apply py-2.5 px-3 border-b border-gray-800 text-sm; }
   .data-table tr:hover td { @apply bg-gray-800 bg-opacity-50; }

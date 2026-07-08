@@ -59,19 +59,86 @@ npm run dev:backend
 npm run dev:frontend
 ```
 
-### Déploiement serveur
+## Modes de déploiement
 
-Le dépôt inclut des scripts de déploiement pour un VPS Ubuntu 22.04 :
+KATASHIE BOT a été pensé pour plusieurs scénarios de mise en production. Voici les modes que nous avons validés et que vous pouvez utiliser selon votre besoin.
+
+### 1. Déploiement automatique sur VPS Ubuntu 22.04
+
+Le mode le plus simple pour un serveur dédié ou VPS.
 
 ```bash
-bash install.sh
-bash deploy-full.sh your-domain.com
+git clone https://github.com/abesskamer237/katashie_bot.git
+cd katashie_bot
+chmod +x install.sh
+sudo bash install.sh
 ```
 
-Ou via Docker Compose :
+Ce mode installe automatiquement :
+- les dépendances système
+- Node.js
+- Nginx
+- Certbot / HTTPS
+- les fichiers du projet
+- la base de données et le compte admin initial
+
+### 2. Déploiement avec script full VPS
+
+Pour une mise en production plus complète avec reverse proxy, firewall et SSL.
+
+```bash
+cd /var/www/katashie-bot
+git pull
+sudo bash deploy-full.sh votre-domaine.com
+```
+
+Ce mode est adapté si vous voulez un déploiement prêt à l’emploi sur un VPS avec domaine public.
+
+### 3. Déploiement Docker Compose
+
+Pour un déploiement conteneurisé simple et reproductible.
 
 ```bash
 docker compose up -d --build
+```
+
+Ce mode est pratique pour :
+- des environnements portables
+- un déploiement rapide
+- une isolation du backend et du frontend
+
+### 4. Déploiement manuel
+
+Si vous préférez gérer vous-même la configuration.
+
+```bash
+npm run install:all
+npm run build
+npm run start
+```
+
+### 5. Mode réparation / reprise d’installation
+
+Si une installation a déjà été tentée mais échoue, vous pouvez reprendre proprement :
+
+```bash
+sudo bash install.sh --repair
+```
+
+## Vérifications post-déploiement
+
+Après chaque mode de déploiement, vous pouvez vérifier rapidement :
+
+```bash
+curl http://127.0.0.1:3000/api/health
+curl https://votre-domaine.com/api/health
+```
+
+Et côté conteneur :
+
+```bash
+sudo docker compose ps
+sudo docker compose logs app
 ```
 
 ## Structure du projet

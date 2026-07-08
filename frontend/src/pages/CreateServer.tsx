@@ -7,6 +7,7 @@ import { Server, Cpu, HardDrive, Users, Clock, GitBranch, Zap, AlertCircle } fro
 import { calculateServerCost } from '../utils/helpers';
 import toast from 'react-hot-toast';
 import axios from 'axios';
+import { CreditWhatsAppCard } from '../components/ui/CreditWhatsAppCard';
 
 export function CreateServerPage() {
   const navigate = useNavigate();
@@ -166,7 +167,11 @@ export function CreateServerPage() {
           </div>
         </div>
 
-        <div className="flex gap-3">
+        {!canAfford && (
+          <CreditWhatsAppCard title="Pas assez de crédits ?" description="Rechargez rapidement pour créer votre serveur dès maintenant." className="mt-2" />
+        )}
+
+        <div className="flex flex-col sm:flex-row gap-3">
           <button type="button" onClick={() => navigate('/servers')} className="btn-secondary flex-1 justify-center py-3">
             Annuler
           </button>

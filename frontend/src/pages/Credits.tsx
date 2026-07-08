@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/authStore';
 import { Zap, CreditCard, History, ExternalLink, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axios from 'axios';
+import { CreditWhatsAppCard } from '../components/ui/CreditWhatsAppCard';
 
 const statusConfig: Record<string, { label: string; className: string; icon: any }> = {
   pending: { label: 'En attente', className: 'badge-pending', icon: Clock },
@@ -87,13 +88,8 @@ export function CreditsPage() {
           ))}
         </div>
 
-        {/* Explication */}
-        <div className="bg-gray-800 border border-gray-700 p-4 mt-4 text-xs text-gray-400 space-y-1">
-          <div className="text-green-400 font-bold mb-2">Comment ça marche ?</div>
-          <div>1. Cliquez sur "Acheter via WhatsApp" — un message pré-rempli est généré automatiquement.</div>
-          <div>2. Envoyez le message à notre équipe sur WhatsApp (+237 682 229 367).</div>
-          <div>3. Effectuez votre paiement selon les instructions.</div>
-          <div>4. Vos crédits seront ajoutés dans les 30 minutes.</div>
+        <div className="mt-4">
+          <CreditWhatsAppCard compact className="mt-0" />
         </div>
       </div>
 
