@@ -324,6 +324,12 @@ clone_repository() {
   if [[ "$INSTALL_DIR" == "/" || -z "$INSTALL_DIR" ]]; then
     error "INSTALL_DIR invalide : '$INSTALL_DIR'"
   fi
+
+  if [ "$SCRIPT_DIR" == "$INSTALL_DIR" ]; then
+    warn "Le script est déjà exécuté depuis le répertoire d’installation ; aucune copie n’est nécessaire."
+    return
+  fi
+
   if [ -d "$INSTALL_DIR" ]; then
     rm -rf "$INSTALL_DIR"
   fi
