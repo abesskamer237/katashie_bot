@@ -301,26 +301,48 @@ collect_config() {
 
 # ── Installation des sources ──────────────────────────────────
 
-# Copie des fichiers du projet depuis le répertoire courant (compatible ZIP)
+prepare_source_dir() {
+  local script_path="${BASH_SOURCE[0]}"
+  local script_dir
+  script_dir="$(cd "$(dirname "$script_path")" && pwd)"
+
+  if [ -d "$script_dir/backend" ] && [ -f "$script_dir/backend/package.json" ] && [ -f "$script_dir/frontend/package.json" ]; then
+    SCRIPT_DIR="$script_dir"
+    return 0
+  fi
+
+  if [ -d "$INSTALL_DIR" ] && [ -f "$INSTALL_DIR/backend/package.json" ] && [ -f "$INSTALL_DIR/frontend/package.json" ]; then
+    SCRIPT_DIR="$INSTALL_DIR"
+    return 0
+  fi
+
+  if command -v git >/dev/null 2>&1; then
+    warn "Aucune source locale valide n’a été trouvée ; téléchargement depuis GitHub..."
+    rm -rf "$INSTALL_DIR"
+    mkdir -p "$INSTALL_DIR"
+    git clone "$REPO_URL" "$INSTALL_DIR" >> "$LOG_FILE" 2>&1 || error "Échec du clonage depuis GitHub"
+    SCRIPT_DIR="$INSTALL_DIR"
+    return 0
+  fi
+
+  error "Aucune source valide n’a été trouvée localement ou via git."
+}
+
 clone_repository() {
   section "Installation des sources"
 
-  # Répertoire où se trouve le script
-  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  prepare_source_dir
 
-  # Vérification préalable de la présence du dossier backend
   if [ ! -d "$SCRIPT_DIR/backend" ]; then
-    error "Le dossier backend est introuvable. Exécutez install.sh depuis le dossier du projet cloné."
+    error "Le dossier backend est introuvable."
   fi
 
   if [ ! -f "$SCRIPT_DIR/backend/package.json" ] || [ ! -f "$SCRIPT_DIR/frontend/package.json" ]; then
     error "Le dépôt cloné est incomplet : package.json manquant."
   fi
 
-  # Sauvegarde de l'ancienne installation
   backup_existing
 
-  # Sécurisation : ne jamais supprimer / ou un répertoire vide
   if [[ "$INSTALL_DIR" == "/" || -z "$INSTALL_DIR" ]]; then
     error "INSTALL_DIR invalide : '$INSTALL_DIR'"
   fi
