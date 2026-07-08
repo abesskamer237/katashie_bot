@@ -632,12 +632,19 @@ EOF
     rm -f /etc/nginx/sites-enabled/default 2>/dev/null || true
   fi
 
-  # Vérification de la syntaxe Nginx
   nginx -t >> "$LOG_FILE" 2>&1 || error "La configuration Nginx est invalide."
 
-  # Activation puis redémarrage (ordre plus propre)
   systemctl enable nginx >> "$LOG_FILE" 2>&1
   systemctl restart nginx >> "$LOG_FILE" 2>&1
+
+  if [[ "$APP_DOMAIN" != "localhost" ]]; then
+    info "Obtention du certificat SSL via Certbot..."
+    certbot --nginx --non-interactive --agree-tos --no-eff-email --redirect \
+      -m "$ADMIN_EMAIL" -d "$APP_DOMAIN" >> "$LOG_FILE" 2>&1 || warn "Certbot n’a pas pu obtenir le certificat SSL. Vérifiez la DNS et le port 80."
+    nginx -t >> "$LOG_FILE" 2>&1 || true
+    systemctl restart nginx >> "$LOG_FILE" 2>&1 || true
+  fi
+
   log "Nginx configuré, activé et redémarré"
 }
 
