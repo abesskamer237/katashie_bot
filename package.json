@@ -1,0 +1,22 @@
+{
+  "name": "katashie-bot",
+  "version": "1.0.0",
+  "description": "KATASHIE BOT — Plateforme SaaS de gestion de bots WhatsApp",
+  "private": true,
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "cd backend && npm run build && cd ../frontend && npm run build",
+    "start": "cd backend && npm start",
+    "db:init": "cd backend && npx ts-node src/database/init.ts",
+    "db:seed": "cd backend && npx ts-node src/database/seed.ts",
+    "install:all": "cd backend && npm install && cd ../frontend && npm install"
+  },
+  "keywords": ["whatsapp", "bot", "panel", "saas", "management"],
+  "author": "KATASHIE BOT",
+  "license": "PROPRIETARY",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/abesskamer237/katashie_bot.git"
+  }
+}
