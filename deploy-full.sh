@@ -16,6 +16,7 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 
+rm -f /etc/apt/sources.list.d/docker.list /etc/apt/sources.list.d/docker.list.save 2>/dev/null || true
 apt-get update
 apt-get install -y ca-certificates curl gnupg lsb-release git nginx ufw certbot python3-certbot-nginx
 
