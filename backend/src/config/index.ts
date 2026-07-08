@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { SignOptions } from 'jsonwebtoken';
 
-dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 // ── Fail fast on missing critical secrets ──────────────────────────────────
 const REQUIRED_SECRETS = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'SESSION_SECRET'];

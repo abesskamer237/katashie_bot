@@ -473,13 +473,14 @@ Type=simple
 User=${SERVICE_USER}
 Group=${SERVICE_USER}
 WorkingDirectory=${INSTALL_DIR}/backend
-ExecStart=/usr/bin/node dist/index.js
+ExecStart=/usr/bin/env node dist/index.js
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=katashie-bot
 Environment=NODE_ENV=production
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 EnvironmentFile=${INSTALL_DIR}/.env
 
 NoNewPrivileges=true
