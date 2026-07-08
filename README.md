@@ -2,7 +2,7 @@
 
 <div align="center">
   <img src="https://img.shields.io/badge/KATASHIE_BOT-v1.0.0-00ff41?style=for-the-badge&logo=whatsapp&logoColor=white" alt="KATASHIE BOT" />
-  <img src="https://img.shields.io/badge/Node.js-24+-339933?style=for-the-badge&logo=node.js&logoColor=white" />
+  <img src="https://img.shields.io/badge/Node.js-22+-339933?style=for-the-badge&logo=node.js&logoColor=white" />
   <img src="https://img.shields.io/badge/React-18+-61DAFB?style=for-the-badge&logo=react&logoColor=black" />
   <img src="https://img.shields.io/badge/TypeScript-5+-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
   <img src="https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white" />
@@ -10,25 +10,78 @@
 
 ---
 
-> **Plateforme SaaS professionnelle de déploiement et gestion de bots WhatsApp.**
+> Plateforme SaaS moderne pour déployer, gérer et superviser des bots WhatsApp via une interface web professionnelle.
 
 ## Vue d'ensemble
 
-KATASHIE BOT permet à vos clients de créer, déployer et administrer facilement leurs bots WhatsApp depuis une interface web moderne au style Hacker/Matrix/Cybersécurité.
+KATASHIE BOT est une application full-stack composée d'un backend API en Node.js/TypeScript, d'un frontend React/Vite et d'une base de données SQLite. Elle permet de gérer des comptes utilisateurs, des crédits, des serveurs, des notifications et des opérations d'administration depuis une interface claire et sécurisée.
 
 ## Fonctionnalités principales
 
-- **Gestion des comptes** — Inscription, connexion, profil, sécurité
-- **Système de crédits** — Achats, consommation, historique
-- **Bots WhatsApp** — Création, déploiement, gestion, logs, QR Code
-- **Panneau admin** — Gestion complète des utilisateurs, serveurs, paiements
-- **Installation one-command** — Un seul script bash pour tout installer
-- **Sécurité** — JWT, CSRF, rate limiting, hashage bcrypt, logs complets
+- Gestion des comptes utilisateurs : inscription, connexion, profil et sécurité
+- Système de crédits : achats, consommation et historique
+- Gestion des serveurs et des bots WhatsApp : création, déploiement et suivi
+- Panneau d'administration : gestion des utilisateurs, serveurs, paiements et logs
+- Déploiement automatisé : scripts Bash et configuration Docker Compose
+- Sécurité de base : JWT, rate limiting, bcrypt, logs et protection des routes sensibles
 
-## Installation rapide
+## Stack technique
+
+- Backend : Node.js, Express, TypeScript, SQLite, JWT
+- Frontend : React, Vite, TypeScript, Tailwind CSS
+- Déploiement : Docker, Docker Compose, Nginx, Certbot
+- Outils : Bash scripts, UFW, systemd-ready
+
+## Démarrage rapide
+
+### Prérequis
+
+- Node.js 22+
+- npm 10+
+- Git
+
+### Installation locale
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/abesskamer237/katashie_bot/main/install.sh)
+git clone https://github.com/abesskamer237/katashie_bot.git
+cd katashie-bot
+npm run install:all
+npm run db:init
+npm run db:seed
+npm run build
+npm run start
+```
+
+### Développement local
+
+```bash
+npm run dev:backend
+npm run dev:frontend
+```
+
+### Déploiement serveur
+
+Le dépôt inclut des scripts de déploiement pour un VPS Ubuntu 22.04 :
+
+```bash
+bash install.sh
+bash deploy-full.sh your-domain.com
+```
+
+Ou via Docker Compose :
+
+```bash
+docker compose up -d --build
+```
+
+## Structure du projet
+
+```text
+backend/      # API Express + logique métier + base de données
+frontend/     # Interface React/Vite
+configs/      # Configuration système et reverse proxy
+scripts/      # Scripts utilitaires
+docs/         # Documentation technique
 ```
 
 ## Documentation
@@ -40,13 +93,19 @@ bash <(curl -fsSL https://raw.githubusercontent.com/abesskamer237/katashie_bot/m
 - [Architecture](docs/architecture.md)
 - [API Reference](docs/api.md)
 
-## Hébergement
+## Déploiement et opérations
 
-Dépôt officiel : https://github.com/abesskamer237/katashie_bot.git
+Pour un déploiement en production, il est recommandé de préparer :
 
-## Contact & Support
+- un domaine correctement pointé vers le VPS
+- un utilisateur non-root pour l’application
+- un firewall configuré avec UFW
+- des variables d’environnement sécurisées dans un fichier .env
 
-WhatsApp : https://wa.me/237682229367
+## Support
+
+- Dépôt GitHub : https://github.com/abesskamer237/katashie_bot.git
+- WhatsApp : https://wa.me/237682229367
 
 ## Licence
 

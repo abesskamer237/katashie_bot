@@ -30,6 +30,7 @@ NODE_VERSION="22"                        # Version de Node.js
 BACKUP_DIR="${INSTALL_DIR}.backup.$(date +%s)" # Sauvegarde en cas de mise à jour
 BACKUP_CREATED=false
 ROLLBACK_NEEDED=false
+REPAIR_MODE=false
 
 # ── Fonctions d'affichage ────────────────────────────────────
 print_banner() {
@@ -101,6 +102,22 @@ check_ports() {
   log "Port ${APP_PORT} libre"
 }
 
+# ── Gestion du mode repair ──────────────────────────────────
+
+parse_args() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --repair)
+        REPAIR_MODE=true
+        shift
+        ;;
+      *)
+        error "Argument inconnu : $1"
+        ;;
+    esac
+  done
+}
+
 # ── Gestion des sauvegardes ──────────────────────────────────
 
 # Sauvegarde automatique des données critiques (.env, database, uploads, logs)
@@ -150,6 +167,8 @@ install_dependencies() {
       unzip \
       build-essential \
       python3 \
+      pkg-config \
+      libsqlite3-dev \
       openssl \
       ca-certificates >> "$LOG_FILE" 2>&1
   else
@@ -218,25 +237,58 @@ install_certbot() {
 collect_config() {
   section "Configuration de KATASHIE BOT"
 
-  prompt "Domaine ou IP du serveur (ex: katashie.exemple.com)"
-  read -r APP_DOMAIN
+  if [[ -z "${APP_DOMAIN:-}" ]]; then
+    if [[ -t 0 ]]; then
+      prompt "Domaine ou IP du serveur (ex: katashie.exemple.com)"
+      read -r APP_DOMAIN
+    else
+      APP_DOMAIN=""
+    fi
+  fi
   APP_DOMAIN=${APP_DOMAIN:-"localhost"}
+  if [[ "$APP_DOMAIN" == "localhost" ]]; then
+    warn "Aucun domaine n’a été fourni ; l’URL sera configurée sur http://localhost."
+  fi
 
-  prompt "Port du backend (défaut: 3000)"
-  read -r APP_PORT
+  if [[ -z "${APP_PORT:-}" ]]; then
+    if [[ -t 0 ]]; then
+      prompt "Port du backend (défaut: 3000)"
+      read -r APP_PORT
+    else
+      APP_PORT=""
+    fi
+  fi
   APP_PORT=${APP_PORT:-"3000"}
 
-  prompt "E-mail administrateur (défaut: admin@katashie.com)"
-  read -r ADMIN_EMAIL
+  if [[ -z "${ADMIN_EMAIL:-}" ]]; then
+    if [[ -t 0 ]]; then
+      prompt "E-mail administrateur (défaut: admin@katashie.com)"
+      read -r ADMIN_EMAIL
+    else
+      ADMIN_EMAIL=""
+    fi
+  fi
   ADMIN_EMAIL=${ADMIN_EMAIL:-"admin@katashie.com"}
 
-  prompt "Mot de passe administrateur (min. 8 caractères)"
-  read -rs ADMIN_PASSWORD
-  echo ""
+  if [[ -z "${ADMIN_PASSWORD:-}" ]]; then
+    if [[ -t 0 ]]; then
+      prompt "Mot de passe administrateur (min. 8 caractères)"
+      read -rs ADMIN_PASSWORD
+      echo ""
+    else
+      ADMIN_PASSWORD=""
+    fi
+  fi
   ADMIN_PASSWORD=${ADMIN_PASSWORD:-"Admin@123456"}
 
-  prompt "Numéro WhatsApp admin (défaut: 237682229367)"
-  read -r ADMIN_WHATSAPP
+  if [[ -z "${ADMIN_WHATSAPP:-}" ]]; then
+    if [[ -t 0 ]]; then
+      prompt "Numéro WhatsApp admin (défaut: 237682229367)"
+      read -r ADMIN_WHATSAPP
+    else
+      ADMIN_WHATSAPP=""
+    fi
+  fi
   ADMIN_WHATSAPP=${ADMIN_WHATSAPP:-"237682229367"}
 
   # Génération de secrets aléatoires pour la sécurité
@@ -258,7 +310,11 @@ clone_repository() {
 
   # Vérification préalable de la présence du dossier backend
   if [ ! -d "$SCRIPT_DIR/backend" ]; then
-    error "Le dossier backend est introuvable. Exécutez install.sh depuis le dossier du projet."
+    error "Le dossier backend est introuvable. Exécutez install.sh depuis le dossier du projet cloné."
+  fi
+
+  if [ ! -f "$SCRIPT_DIR/backend/package.json" ] || [ ! -f "$SCRIPT_DIR/frontend/package.json" ]; then
+    error "Le dépôt cloné est incomplet : package.json manquant."
   fi
 
   # Sauvegarde de l'ancienne installation
@@ -285,6 +341,7 @@ clone_repository() {
   [ -d "$INSTALL_DIR/frontend" ] || error "frontend absent après copie"
   [ -f "$INSTALL_DIR/backend/package.json" ] || error "backend/package.json absent"
   [ -f "$INSTALL_DIR/frontend/package.json" ] || error "frontend/package.json absent"
+  [ -f "$INSTALL_DIR/backend/src/database/seed.ts" ] || error "seed.ts absent"
 
   log "Sources copiées avec succès."
 }
@@ -293,7 +350,11 @@ clone_repository() {
 
 create_env_file() {
   section "Création du fichier de configuration"
-  # APP_URL est en HTTPS car Certbot est installé pour gérer le SSL
+  local app_url="https://${APP_DOMAIN}"
+  if [[ "$APP_DOMAIN" == "localhost" ]]; then
+    app_url="http://${APP_DOMAIN}"
+  fi
+
   cat > "$INSTALL_DIR/.env" <<EOF
 # KATASHIE BOT — Configuration générée automatiquement
 # Généré le : $(date)
@@ -301,7 +362,7 @@ create_env_file() {
 NODE_ENV=production
 PORT=${APP_PORT}
 APP_NAME=KATASHIE BOT
-APP_URL=https://${APP_DOMAIN}
+APP_URL=${app_url}
 
 DB_PATH=${INSTALL_DIR}/database/katashie.db
 
@@ -330,7 +391,7 @@ MAX_FILE_SIZE=52428800
 MIN_CREDITS_FOR_SERVER=15
 EOF
   chmod 600 "$INSTALL_DIR/.env"
-  log "Fichier .env créé avec APP_URL=https://${APP_DOMAIN}"
+  log "Fichier .env créé avec APP_URL=${app_url}"
 }
 
 # ── Compilation et installation de l'application ─────────────
@@ -367,10 +428,13 @@ install_app() {
   section "Initialisation de la base de données"
   cd "$INSTALL_DIR/backend"
   mkdir -p "$INSTALL_DIR/database"
-  # Le fichier .db sera créé automatiquement par better-sqlite3
   chown "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR/database" 2>/dev/null || true
 
-  node dist/database/seed.js >> "$LOG_FILE" 2>&1
+  if [ -f dist/database/seed.js ]; then
+    node dist/database/seed.js >> "$LOG_FILE" 2>&1
+  else
+    npx ts-node src/database/seed.ts >> "$LOG_FILE" 2>&1
+  fi
   log "Base de données initialisée et données de démarrage insérées"
 }
 
@@ -507,13 +571,15 @@ EOF
 start_services() {
   section "Démarrage des services"
 
+  info "Démarrage du service systemd..."
   systemctl start katashie-bot >> "$LOG_FILE" 2>&1
   sleep 5
 
   if systemctl is-active --quiet katashie-bot; then
     log "Service KATASHIE BOT démarré avec succès"
   else
-    error "Le service n'a pas démarré. Logs :\n$(journalctl -u katashie-bot -n 50)"
+    warn "Le service n’a pas démarré correctement. Vérifiez les logs avec : journalctl -u katashie-bot -n 50"
+    exit 1
   fi
 }
 
@@ -546,6 +612,8 @@ print_summary() {
 
 # ── Programme principal───────────────────────────────────────
 
+parse_args "$@"
+
 # Création du répertoire de logs
 mkdir -p "$(dirname "$LOG_FILE")"
 echo "" > "$LOG_FILE"
@@ -553,6 +621,10 @@ echo "Installation KATASHIE BOT — $(date)" >> "$LOG_FILE"
 
 clear
 print_banner
+
+if [[ "$REPAIR_MODE" == true ]]; then
+  warn "Mode réparation activé : le script tentera de reprendre l’installation existante."
+fi
 
 # Étape 1 : Vérifications initiales
 check_root

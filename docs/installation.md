@@ -4,125 +4,118 @@
 
 | Composant | Version minimale | Recommandé |
 |-----------|-----------------|------------|
-| OS        | Ubuntu 20.04 / Debian 11 | Ubuntu 22.04 LTS |
-| RAM       | 1 GB | 2 GB+ |
+| OS        | Ubuntu 22.04 LTS | Ubuntu 22.04 LTS |
+| RAM       | 1 Go | 2 Go+ |
 | CPU       | 1 vCPU | 2 vCPU+ |
-| Disque    | 10 GB | 20 GB+ |
-| Node.js   | 18+ | 20 LTS |
+| Disque    | 20 Go | 40 Go+ |
+| Docker    | 24+ | 27+ |
+| Docker Compose | 2.20+ | 2.30+ |
 
 ---
 
-## Installation automatique (recommandé)
+## Installation automatique sur VPS
 
-Une seule commande suffit :
+La méthode recommandée pour un serveur Ubuntu 22.04 est la suivante :
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/abesskamer237/katashie_bot/main/install.sh)
+sudo apt update && sudo apt install -y git curl ufw nginx certbot python3-certbot-nginx
+cd /var/www
+sudo git clone https://github.com/abesskamer237/katashie_bot.git katashie-bot
+cd /var/www/katashie-bot
+sudo bash deploy-full.sh votre-domaine.com
 ```
 
-Le script va automatiquement :
-1. Vérifier les prérequis système
-2. Installer Node.js 20 LTS
-3. Installer Nginx
-4. Télécharger les sources depuis GitHub
-5. Configurer les variables d'environnement
-6. Installer les dépendances npm
-7. Construire le frontend
-8. Initialiser la base de données
-9. Créer le service systemd
-10. Configurer Nginx en reverse proxy
-11. Démarrer tous les services
-12. Afficher les informations de connexion
-
-**Durée estimée : 5 à 10 minutes**
+Ce script installe automatiquement :
+1. Docker et Docker Compose
+2. Nginx
+3. UFW et règles de base
+4. Certbot et HTTPS
+5. L’application via Docker Compose
+6. Le reverse proxy vers le conteneur sur le port 3000
 
 ---
 
-## Installation manuelle
+## Installation locale
 
 ### 1. Cloner le dépôt
 
 ```bash
-git clone https://github.com/abesskamer237/katashie_bot.git /opt/katashie-bot
-cd /opt/katashie-bot
+git clone https://github.com/abesskamer237/katashie_bot.git
+cd katashie-bot
 ```
 
-### 2. Configurer l'environnement
+### 2. Installer les dépendances
 
 ```bash
-cp .env.example .env
-nano .env
+npm run install:all
 ```
 
-Variables essentielles à modifier :
-- `APP_URL` — URL publique du serveur
-- `JWT_SECRET` — Clé secrète (64+ caractères aléatoires)
-- `ADMIN_EMAIL` — Email de l'administrateur
-- `ADMIN_PASSWORD` — Mot de passe admin
-- `ADMIN_WHATSAPP` — Numéro WhatsApp pour les paiements
-
-### 3. Backend
+### 3. Initialiser la base de données
 
 ```bash
-cd backend
-npm install
+npm run db:init
+npm run db:seed
+```
+
+### 4. Lancer l’application
+
+```bash
 npm run build
+npm run start
 ```
 
-### 4. Frontend
+### 5. Développement local
 
 ```bash
-cd ../frontend
-npm install
-npm run build
+npm run dev:backend
+npm run dev:frontend
 ```
 
-### 5. Base de données
+---
 
-```bash
-cd ../backend
-npx ts-node src/database/seed.ts
+## Variables d'environnement
+
+Un fichier `.env` est attendu à la racine du projet. Il doit contenir au minimum :
+
+```env
+NODE_ENV=production
+PORT=3000
+JWT_SECRET=votre_cle_secrete_tres_longue
+APP_URL=https://votre-domaine.com
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=motdepassefort
+ADMIN_WHATSAPP=237000000000
 ```
 
-### 6. Service systemd
-
-```bash
-cp /opt/katashie-bot/configs/katashie-bot.service /etc/systemd/system/
-systemctl daemon-reload
-systemctl enable --now katashie-bot
-```
-
-### 7. Nginx
-
-```bash
-cp /opt/katashie-bot/configs/nginx.conf /etc/nginx/sites-available/katashie-bot
-# Modifier VOTRE_DOMAINE dans le fichier
-ln -s /etc/nginx/sites-available/katashie-bot /etc/nginx/sites-enabled/
-nginx -t && systemctl restart nginx
-```
+Le backend charge automatiquement ce fichier via la configuration interne.
 
 ---
 
 ## Vérification
 
 ```bash
-# Statut du service
-systemctl status katashie-bot
+# Vérifier le conteneur
+sudo docker compose ps
 
-# Logs en temps réel
-journalctl -u katashie-bot -f
+# Voir les logs
+sudo docker compose logs app
 
-# Test de l'API
-curl http://localhost:3000/api/health
+# Test local de l'API
+curl http://127.0.0.1:3000/api/health
+
+# Test HTTPS
+curl https://votre-domaine.com/api/health
 ```
 
 ---
 
 ## HTTPS avec Certbot
 
+Le script de déploiement le configure automatiquement. Si vous voulez le faire manuellement :
+
 ```bash
-apt install certbot python3-certbot-nginx -y
-certbot --nginx -d votre-domaine.com
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d votre-domaine.com
 ```
 
 ---
@@ -130,8 +123,27 @@ certbot --nginx -d votre-domaine.com
 ## Pare-feu
 
 ```bash
-ufw allow 80/tcp
-ufw allow 443/tcp
-ufw allow 22/tcp
-ufw enable
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable
+```
+
+---
+
+## Maintenance
+
+### Mettre à jour l’application
+
+```bash
+cd /var/www/katashie-bot
+git pull
+sudo bash deploy-full.sh votre-domaine.com
+```
+
+### Redémarrer les services
+
+```bash
+sudo docker compose down
+sudo docker compose up -d --build
 ```

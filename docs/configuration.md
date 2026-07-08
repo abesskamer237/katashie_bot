@@ -2,91 +2,87 @@
 
 ## Fichier `.env`
 
-Le fichier `.env` contient toutes les configurations de l'application.
+Le fichier `.env` doit être placé à la racine du dépôt et est lu par l’application au démarrage.
 
-### Application
+### Variables principales
 
-| Variable | Description | Défaut |
-|----------|-------------|--------|
-| `NODE_ENV` | Environnement (`production`/`development`) | `production` |
-| `PORT` | Port d'écoute du backend | `3000` |
-| `APP_NAME` | Nom affiché de la plateforme | `KATASHIE BOT` |
-| `APP_URL` | URL publique (avec https si SSL) | `http://localhost:3000` |
+| Variable | Description | Exemple |
+|----------|-------------|---------|
+| `NODE_ENV` | Environnement d’exécution | `production` |
+| `PORT` | Port d’écoute du backend | `3000` |
+| `APP_URL` | URL publique du site | `https://votre-domaine.com` |
+| `JWT_SECRET` | Clé secrète JWT | `openssl rand -hex 64` |
+| `ADMIN_EMAIL` | Email du compte administrateur | `admin@example.com` |
+| `ADMIN_PASSWORD` | Mot de passe initial admin | `MotDePasseFort123!` |
+| `ADMIN_WHATSAPP` | Numéro WhatsApp utilisé pour les paiements | `237XXXXXXXXX` |
 
-### Sécurité
-
-| Variable | Description |
-|----------|-------------|
-| `JWT_SECRET` | Clé secrète JWT (min. 64 caractères) |
-| `JWT_EXPIRES_IN` | Durée de validité des tokens (`7d`, `24h`) |
-| `JWT_REFRESH_SECRET` | Clé secrète pour les refresh tokens |
-| `JWT_REFRESH_EXPIRES_IN` | Durée des refresh tokens (`30d`) |
-| `SESSION_SECRET` | Clé secrète des sessions |
-
-> ⚠️ **Important** : Générez des clés aléatoires sécurisées :
-> ```bash
-> openssl rand -hex 64
-> ```
-
-### Administrateur
+### Variables optionnelles
 
 | Variable | Description |
 |----------|-------------|
-| `ADMIN_EMAIL` | Email du compte administrateur |
-| `ADMIN_PASSWORD` | Mot de passe admin (créé au premier démarrage) |
-| `ADMIN_USERNAME` | Nom d'utilisateur admin |
-| `ADMIN_WHATSAPP` | Numéro WhatsApp pour recevoir les paiements |
+| `JWT_EXPIRES_IN` | Durée des tokens JWT |
+| `SESSION_SECRET` | Secret utilisé pour les sessions |
+| `RATE_LIMIT_WINDOW_MS` | Fenêtre de limitation de requêtes |
+| `RATE_LIMIT_MAX` | Limite par fenêtre |
+| `LOGIN_LIMIT_MAX` | Limite de tentatives de connexion |
+| `MIN_CREDITS_FOR_SERVER` | Crédits minimum pour créer un serveur |
 
-### Base de données
-
-| Variable | Description |
-|----------|-------------|
-| `DB_PATH` | Chemin vers la base SQLite | 
-
-### Rate Limiting
-
-| Variable | Description | Défaut |
-|----------|-------------|--------|
-| `RATE_LIMIT_WINDOW_MS` | Fenêtre de limitation (ms) | `900000` (15 min) |
-| `RATE_LIMIT_MAX` | Requêtes max par fenêtre | `100` |
-| `LOGIN_LIMIT_MAX` | Tentatives de connexion max | `5` |
-
-### Crédits
-
-| Variable | Description | Défaut |
-|----------|-------------|--------|
-| `MIN_CREDITS_FOR_SERVER` | Crédits minimum pour créer un serveur | `15` |
+> ⚠️ Important : utilisez des secrets longs et aléatoires en production.
 
 ---
 
-## Personnalisation des packs de crédits
+## Configuration de la base de données
 
-Les packs se gèrent depuis le panneau admin :
-1. Connectez-vous sur `/admin`
-2. Allez dans **Packs crédits**
-3. Créez, modifiez ou supprimez les packs
+L’application utilise SQLite via le backend. La base est initialisée automatiquement au démarrage du conteneur si nécessaire.
 
-Vous pouvez également les modifier directement en base de données.
+Chemin par défaut :
+- `backend/database/katashie.db`
+
+Pour réinitialiser la base localement :
+
+```bash
+npm run db:init
+npm run db:seed
+```
 
 ---
 
 ## Configuration du système de paiement
 
-Le système de paiement fonctionne via WhatsApp :
-1. L'utilisateur clique sur "Acheter via WhatsApp"
-2. Un message pré-rempli est généré avec toutes les informations
-3. L'utilisateur envoie le message au numéro admin
-4. L'admin valide le paiement depuis le panneau admin
-5. Les crédits sont ajoutés automatiquement
+Le système de paiement est piloté par WhatsApp :
+1. l’utilisateur clique sur “Acheter via WhatsApp”
+2. un message pré-rempli est généré
+3. l’admin valide le paiement depuis le panneau d’administration
+4. les crédits sont ajoutés manuellement ou automatiquement selon la logique du projet
 
-Pour modifier le numéro WhatsApp : `ADMIN_WHATSAPP=237XXXXXXXXX`
+Pour modifier le numéro utilisé :
+
+```bash
+ADMIN_WHATSAPP=237XXXXXXXXX
+```
 
 ---
 
 ## Logs
 
-Les logs sont dans le répertoire configuré par `LOG_DIR` (`./logs` par défaut) :
-- `katashie-YYYY-MM-DD.log` — Tous les logs
-- `error-YYYY-MM-DD.log` — Erreurs uniquement
+Les logs sont écrits par le backend et sont visibles via :
 
-Rotation automatique : 30 jours de conservation.
+```bash
+sudo docker compose logs app
+```
+
+En local :
+
+```bash
+npm run dev:backend
+```
+
+---
+
+## Sécurité recommandée
+
+En production, il est conseillé de :
+- ne jamais committer un `.env` réel
+- utiliser un secret fort pour `JWT_SECRET`
+- ouvrir uniquement les ports 22, 80 et 443 via UFW
+- placer le service derrière Nginx avec HTTPS

@@ -2,42 +2,45 @@
 
 ## Sauvegarde manuelle
 
+Sur le VPS, la sauvegarde peut être faite en copiant les fichiers essentiels du projet :
+
 ```bash
-bash /opt/katashie-bot/backup.sh
+cd /var/www/katashie-bot
+sudo tar -czf /root/katashie-backup-$(date +%F-%H%M%S).tar.gz .env backend/database uploads
 ```
 
-Le fichier de sauvegarde est créé dans `/var/backups/katashie-bot/`.
-
-## Sauvegarde automatique (cron)
-
-Ajouter dans la crontab (`crontab -e`) :
+## Sauvegarde du dépôt
 
 ```bash
-# Sauvegarde quotidienne à 3h00
-0 3 * * * bash /opt/katashie-bot/backup.sh >> /var/log/katashie-backup.log 2>&1
+cd /var/www/katashie-bot
+git status
+git add .
+git commit -m "Backup before update"
+git push origin main
 ```
 
 ## Restauration
 
 ```bash
-# Arrêter le service
-systemctl stop katashie-bot
-
-# Restaurer depuis la sauvegarde
-tar -xzf /var/backups/katashie-bot/katashie_backup_YYYYMMDD_HHMMSS.tar.gz -C /
-
-# Redémarrer
-systemctl start katashie-bot
+cd /var/www/katashie-bot
+sudo tar -xzf /root/katashie-backup-YYYYMMDD-HHMMSS.tar.gz -C /var/www/katashie-bot
+sudo docker compose down
+sudo docker compose up -d --build
 ```
 
-## Ce qui est sauvegardé
+## Ce qui est conseillé de sauvegarder
 
-- Base de données SQLite (`database/katashie.db`)
-- Fichier de configuration (`.env`)
-- Fichiers uploadés (`uploads/`)
+- le fichier `.env`
+- la base SQLite dans `backend/database/`
+- les fichiers uploadés si vous en avez
+- les modifications de configuration Nginx ou Certbot si elles sont personnalisées
 
-## Ce qui N'est PAS sauvegardé
+## Ce qui n’est pas nécessaire de sauvegarder
 
-- `node_modules/` (réinstallable avec `npm install`)
-- `dist/` (reconstructible avec `npm run build`)
-- Logs (conservés séparément dans `/var/log`)
+- `node_modules/`
+- `dist/`
+- les images Docker construites localement
+
+## Recommandation pratique
+
+Pour une production sérieuse, planifiez une sauvegarde automatique quotidienne avec cron ou un système de backup externe.
