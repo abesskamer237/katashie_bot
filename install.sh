@@ -95,7 +95,15 @@ check_ports() {
   if command -v ss >/dev/null 2>&1; then
     for port in "${ports[@]}"; do
       if ss -ltn 2>/dev/null | grep -q ":${port} "; then
-        error "Le port ${port} est déjà utilisé. Veuillez libérer ce port avant d'installer."
+        warn "Le port ${port} est déjà utilisé. Arrêt de l’ancienne instance si elle existe..."
+        systemctl stop katashie-bot >/dev/null 2>&1 || true
+        if command -v fuser >/dev/null 2>&1; then
+          fuser -k "${port}/tcp" >/dev/null 2>&1 || true
+        fi
+        sleep 2
+        if ss -ltn 2>/dev/null | grep -q ":${port} "; then
+          error "Le port ${port} reste occupé malgré l’arrêt tenté. Veuillez le libérer avant d’installer."
+        fi
       fi
     done
   else
@@ -639,14 +647,19 @@ start_services() {
   section "Démarrage des services"
 
   info "Démarrage du service systemd..."
+  systemctl stop katashie-bot >/dev/null 2>&1 || true
   systemctl start katashie-bot >> "$LOG_FILE" 2>&1
   sleep 5
 
   if systemctl is-active --quiet katashie-bot; then
     log "Service KATASHIE BOT démarré avec succès"
   else
-    warn "Le service n’a pas démarré correctement. Vérifiez les logs avec : journalctl -u katashie-bot -n 50"
-    exit 1
+    warn "Le service n’a pas démarré correctement. Vérification des logs et du port..."
+    if command -v ss >/dev/null 2>&1; then
+      ss -ltnp 2>/dev/null | grep ":${APP_PORT} " || true
+    fi
+    journalctl -u katashie-bot -n 50 --no-pager >> "$LOG_FILE" 2>&1 || true
+    error "Impossible de démarrer le service. Consultez /var/log/katashie-install.log ou journalctl -u katashie-bot"
   fi
 }
 
