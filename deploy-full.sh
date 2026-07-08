@@ -19,18 +19,21 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y ca-certificates curl gnupg lsb-release git nginx ufw certbot python3-certbot-nginx
 
-install -m 0755 -d /etc/apt/keyrings
-if [ ! -f /etc/apt/keyrings/docker.gpg ]; then
-  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+if ! command -v docker >/dev/null 2>&1; then
+  curl -fsSL https://get.docker.com | sh
 fi
-cat >/etc/apt/sources.list.d/docker.list <<EOF
-deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu jammy stable
-EOF
 
-apt-get update
-apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-systemctl enable docker
-systemctl start docker
+if ! command -v docker >/dev/null 2>&1; then
+  echo "Docker n'a pas pu être installé automatiquement." >&2
+  exit 1
+fi
+
+if ! docker compose version >/dev/null 2>&1; then
+  apt-get install -y docker-compose-plugin || true
+fi
+
+systemctl enable docker >/dev/null 2>&1 || true
+systemctl start docker >/dev/null 2>&1 || true
 usermod -aG docker "$APP_USER" || true
 
 ufw --force reset
